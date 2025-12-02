@@ -1,0 +1,244 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resume-upload",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "id": "dbb98b08-ffb2-46a0-9b14-bbcd3a032c21",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        2816,
+        208
+      ],
+      "webhookId": "7fc538c0-9792-42e8-af4b-f8f9faf43a47"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "scoringCriteria",
+              "value": "Rate this resume on a scale of 1-10 based on: clarity of information, professional structure, relevant experience, skills presentation, and overall quality. Provide only the numeric score and a brief 2-3 sentence explanation.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "8c2440d9-d268-425f-a287-3866944c88fc",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3040,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "data0",
+        "options": {}
+      },
+      "id": "b7935ddd-cc13-411c-8a1b-936adeadbbf3",
+      "name": "Extract Resume Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        3264,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-3.5-turbo",
+          "mode": "id"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $json.text}}\n\n{{ $('Workflow Configuration').first().json.scoringCriteria }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "5c734d57-a6c4-4892-8d42-261af672f4be",
+      "name": "Score Resume with AI",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        3488,
+        208
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "4IfE3SJcyU6YGWVc",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "candidateName",
+              "value": "={{ $json.candidateName || \"Not provided\" }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "extractedSummary",
+              "value": "={{ $('Extract Resume Text').first().json.data.substring(0, 500) }}...",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "aiScore",
+              "value": "={{ $('Score Resume with AI').first().json.message.content }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "02d1f321-54a9-4fe7-8e7b-b91d26ff1106",
+      "name": "Format Results",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3840,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "19lMlqBnJjTkkRWFoud1cCkz5TjEYIRUZGerAH5ZU4sE"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "timestamp"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "946ca554-073e-41c5-991d-2e6414bd7458",
+      "name": "Store in Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        4064,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Ktv9wsDrgNzxDyja",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Extract Resume Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Resume Text": {
+      "main": [
+        [
+          {
+            "node": "Score Resume with AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Resume with AI": {
+      "main": [
+        [
+          {
+            "node": "Format Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Results": {
+      "main": [
+        [
+          {
+            "node": "Store in Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4d6bcef5-7fba-4cd4-b403-915bf4e736b4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9dd398b5f69afc563507d708d32dff035e017576156512d399a0e901210c77f2"
+  },
+  "id": "hcudKfR8OpTg7ivi",
+  "tags": []
+}
